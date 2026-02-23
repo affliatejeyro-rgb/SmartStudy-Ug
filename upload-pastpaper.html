@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Past Paper | SmartStudy UG</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+}
+nav{
+padding:15px 30px;
+background:rgba(0,0,0,0.6);
+display:flex;
+justify-content:space-between;
+}
+nav a{
+color:white;
+text-decoration:none;
+margin-left:15px;
+}
+.container{
+max-width:800px;
+margin:40px auto;
+padding:20px;
+}
+.card{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:25px;
+backdrop-filter:blur(15px);
+}
+input,select,textarea{
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+}
+textarea{
+min-height:100px;
+resize:vertical;
+}
+button{
+margin-top:15px;
+padding:12px;
+border:none;
+border-radius:12px;
+font-weight:700;
+cursor:pointer;
+background:linear-gradient(135deg,var(--accent),var(--purple));
+color:white;
+}
+.success{
+margin-top:15px;
+color:var(--gold);
+font-weight:700;
+}
+.help{
+margin-top:20px;
+padding:15px;
+background:rgba(255,255,255,0.05);
+border-radius:15px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div><strong>SmartStudy UG</strong></div>
+<div>
+<a href="index.html">Home</a>
+<a href="schools.html">Schools</a>
+<a href="competition.html">Arena</a>
+</div>
+</nav>
+
+<div class="container">
+<div class="card">
+
+<h2>📄 Upload Past Paper</h2>
+<p>Support students by uploading verified past examination papers.</p>
+
+<select id="schoolSelect"></select>
+
+<input id="title" placeholder="Paper Title">
+<input id="subject" placeholder="Subject">
+<input id="year" placeholder="Year (e.g. 2024)">
+<input id="fileLink" placeholder="File Link (Google Drive / PDF URL)">
+<textarea id="description" placeholder="Optional description..."></textarea>
+
+<button onclick="uploadPaper()">Submit Past Paper</button>
+
+<div class="success" id="successMsg"></div>
+
+<div class="help">
+<h3>Need Help?</h3>
+<p>If upload fails or link is rejected, contact support.</p>
+<a href="https://wa.me/256704557858" target="_blank">
+<button>Contact Support</button>
+</a>
+</div>
+
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp }
+from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const schoolSelect=document.getElementById("schoolSelect");
+
+async function loadSchools(){
+const snapshot=await getDocs(collection(db,"schools"));
+schoolSelect.innerHTML="<option value=''>Select School</option>";
+snapshot.forEach(docSnap=>{
+schoolSelect.innerHTML+=`<option value="${docSnap.id}">${docSnap.data().name}</option>`;
+});
+}
+
+window.uploadPaper=async()=>{
+if(!schoolSelect.value || !title.value || !subject.value || !year.value){
+alert("Please fill required fields");
+return;
+}
+
+await addDoc(collection(db,"pastPapers"),{
+schoolId:schoolSelect.value,
+title:title.value,
+subject:subject.value,
+year:year.value,
+fileLink:fileLink.value || "",
+description:description.value || "",
+createdAt:serverTimestamp()
+});
+
+const schoolRef=doc(db,"schools",schoolSelect.value);
+await updateDoc(schoolRef,{
+totalPastPapers:increment(1)
+});
+
+successMsg.textContent="Past Paper Uploaded Successfully!";
+setTimeout(()=>{
+window.location.href="schools.html";
+},2000);
+};
+
+loadSchools();
+</script>
+
+</body>
+</html>

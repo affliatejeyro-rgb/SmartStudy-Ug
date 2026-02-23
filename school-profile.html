@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Profile | SmartStudy UG</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+}
+nav{
+padding:15px 30px;
+background:rgba(0,0,0,0.6);
+display:flex;
+justify-content:space-between;
+}
+nav a{
+color:white;
+text-decoration:none;
+margin-left:15px;
+}
+.container{
+max-width:1000px;
+margin:40px auto;
+padding:20px;
+}
+.card{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:25px;
+backdrop-filter:blur(15px);
+margin-bottom:20px;
+}
+img{
+width:100px;
+height:100px;
+border-radius:15px;
+object-fit:cover;
+}
+.stats{
+margin-top:15px;
+line-height:1.8;
+}
+.progress{
+height:10px;
+background:rgba(255,255,255,0.1);
+border-radius:20px;
+margin-top:8px;
+overflow:hidden;
+}
+.bar{
+height:100%;
+background:linear-gradient(90deg,var(--accent),var(--purple));
+}
+button{
+margin-top:10px;
+padding:10px 15px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+background:linear-gradient(135deg,var(--accent),var(--purple));
+color:white;
+font-weight:600;
+}
+.actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div><strong>SmartStudy UG</strong></div>
+<div>
+<a href="index.html">Home</a>
+<a href="schools.html">Schools</a>
+<a href="competition.html">Arena</a>
+</div>
+</nav>
+
+<div class="container" id="profileContainer">
+Loading school profile...
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const container=document.getElementById("profileContainer");
+
+const params=new URLSearchParams(window.location.search);
+const id=params.get("id");
+
+if(!id){
+container.innerHTML="Invalid School.";
+}
+
+async function loadProfile(){
+const docRef=doc(db,"schools",id);
+const docSnap=await getDoc(docRef);
+
+if(!docSnap.exists()){
+container.innerHTML="School not found.";
+return;
+}
+
+const school=docSnap.data();
+
+const wins=school.totalWins || 0;
+const matches=school.totalMatches || 0;
+const notes=school.totalNotes || 0;
+const papers=school.totalPastPapers || 0;
+
+const winRate=matches>0 ? ((wins/matches)*100).toFixed(1) : 0;
+const contributionScore=notes + papers;
+
+container.innerHTML=`
+<div class="card">
+<img src="${school.logo || 'https://via.placeholder.com/100'}">
+<h2>${school.name}</h2>
+<p><em>${school.motto || ''}</em></p>
+
+<div class="stats">
+📍 District: ${school.district}<br>
+👤 Contact: ${school.contactPerson || 'N/A'}<br>
+📞 Phone: ${school.phone || 'N/A'}<br><br>
+
+🏆 Wins: ${wins}<br>
+🎮 Matches: ${matches}<br>
+📊 Win Rate: ${winRate}% 
+<div class="progress"><div class="bar" style="width:${winRate}%"></div></div>
+
+<br>
+📘 Notes Uploaded: ${notes}<br>
+📄 Past Papers Uploaded: ${papers}<br>
+💡 Contribution Score: ${contributionScore}
+
+<div class="progress"><div class="bar" style="width:${contributionScore*5}%"></div></div>
+</div>
+
+<div class="actions">
+<button onclick="window.location.href='competition.html'">Enter Arena</button>
+<button onclick="window.location.href='schools.html'">Back to Schools</button>
+<button onclick="shareSchool()">Share School</button>
+<a href="https://wa.me/256704557858" target="_blank">
+<button>Contact Support</button>
+</a>
+</div>
+
+</div>
+`;
+}
+
+window.shareSchool=function(){
+const link=window.location.href;
+navigator.clipboard.writeText(link);
+alert("School profile link copied!");
+};
+
+loadProfile();
+</script>
+
+</body>
+</html>

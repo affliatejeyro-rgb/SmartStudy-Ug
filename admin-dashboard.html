@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard | SmartStudy UG</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Poppins',sans-serif;background:linear-gradient(180deg,#05070d,#0b1220);color:white;margin:0;padding:0;}
+nav{padding:15px 30px;background:rgba(0,0,0,0.7);display:flex;justify-content:space-between;align-items:center;}
+nav h2{margin:0;font-size:1.5rem;}
+nav button{padding:8px 15px;border:none;border-radius:10px;background:#B78BFF;color:white;cursor:pointer;font-weight:600;}
+.container{max-width:1200px;margin:40px auto;padding:20px;}
+.section{background:rgba(255,255,255,0.05);padding:20px;margin-bottom:30px;border-radius:20px;border:1px solid rgba(255,255,255,0.15);}
+.section h3{margin-bottom:15px;}
+.section button{padding:10px 15px;margin:5px;border:none;border-radius:10px;background:linear-gradient(135deg,#6EA8FF,#B78BFF);color:white;font-weight:600;cursor:pointer;}
+.section input, .section select, .section textarea{padding:8px;margin:5px;border-radius:8px;border:none;width:100%;}
+.cards{display:flex;flex-wrap:wrap;gap:20px;}
+.card{flex:1;min-width:200px;background:rgba(255,255,255,0.06);border-radius:15px;padding:15px;cursor:pointer;transition:0.3s;}
+.card:hover{transform:scale(1.05);}
+.horizontal-cards{display:flex;gap:20px;overflow-x:auto;padding-bottom:10px;}
+.horizontal-cards .card{flex:0 0 250px;}
+textarea{resize:none;}
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+table th, table td{border:1px solid rgba(255,255,255,0.2);padding:8px;text-align:left;}
+table th{background:rgba(255,255,255,0.1);}
+.score-input{width:60px;}
+.approve-btn{background:#4CAF50;color:white;}
+.reject-btn{background:#f44336;color:white;}
+.delete-btn{background:#f0a500;color:white;}
+</style>
+</head>
+<body>
+
+<nav>
+<h2>Admin Dashboard | SmartStudy UG</h2>
+<button onclick="logoutAdmin()">Logout</button>
+</nav>
+
+<div class="container">
+
+<!-- Overview -->
+<div class="section">
+<h3>📊 Overview</h3>
+<div class="horizontal-cards">
+<div class="card">Total Schools: <span id="totalSchools">0</span></div>
+<div class="card">Total Students: <span id="totalStudents">0</span></div>
+<div class="card">Total Notes: <span id="totalNotes">0</span></div>
+<div class="card">Total Past Papers: <span id="totalPapers">0</span></div>
+<div class="card">Live Competitions: <span id="liveCompetitions">0</span></div>
+</div>
+</div>
+
+<!-- Competitions -->
+<div class="section">
+<h3>🏆 Competitions</h3>
+<input type="text" id="competitionName" placeholder="Competition Name">
+<textarea id="competitionDesc" placeholder="Description"></textarea>
+<button onclick="createCompetition()">Create Competition</button>
+<div class="horizontal-cards" id="competitionsList"></div>
+</div>
+
+<!-- Competition Arena -->
+<div class="section">
+<h3>⚔️ Competition Arena</h3>
+<div id="arenaList"></div>
+</div>
+
+<!-- Judges -->
+<div class="section">
+<h3>👨‍⚖️ Judges</h3>
+<input type="text" id="judgeName" placeholder="Judge Name">
+<button onclick="addJudge()">Add Judge</button>
+<div id="judgesList"></div>
+</div>
+
+<!-- Schools -->
+<div class="section">
+<h3>🏫 Schools</h3>
+<input type="text" id="schoolName" placeholder="School Name">
+<button onclick="addSchool()">Add School</button>
+<div id="schoolsList"></div>
+</div>
+
+<!-- Students -->
+<div class="section">
+<h3>🎓 Students</h3>
+<input type="text" id="studentName" placeholder="Student Name">
+<select id="studentSchool"></select>
+<button onclick="addStudent()">Add Student</button>
+<div id="studentsList"></div>
+</div>
+
+<!-- Notes & Past Papers -->
+<div class="section">
+<h3>📘 Notes & Past Papers</h3>
+<div id="notesList"></div>
+</div>
+
+<!-- Announcements -->
+<div class="section">
+<h3>📢 Announcements</h3>
+<input type="text" id="announcementTitle" placeholder="Title">
+<textarea id="announcementMsg" placeholder="Message"></textarea>
+<button onclick="addAnnouncement()">Add Announcement</button>
+<div id="announcementsList"></div>
+</div>
+
+<!-- WhatsApp & Contact -->
+<div class="section">
+<h3>📱 Settings</h3>
+<input type="text" id="whatsappGroup" placeholder="WhatsApp Group Link">
+<input type="text" id="supportContact" placeholder="Support Contact">
+<button onclick="updateSettings()">Update Settings</button>
+</div>
+
+<!-- Monetization -->
+<div class="section">
+<h3>💰 Monetization</h3>
+<input type="text" id="adTitle" placeholder="Ad Title">
+<input type="text" id="adLink" placeholder="Ad Link">
+<button onclick="addMonetization()">Add Ad</button>
+<div id="monetizationList"></div>
+</div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const PASSWORD = "NampozaJ";
+if(localStorage.getItem("adminLoggedIn") !== btoa(PASSWORD)){
+    alert("Unauthorized! Redirecting to login.");
+    window.location.href="admin-login.html";
+}
+window.logoutAdmin = function(){localStorage.removeItem("adminLoggedIn");window.location.href="admin-login.html";}
+
+// Load Overview and Populate selects
+async function loadOverview(){
+    const schoolsSnap = await getDocs(collection(db,"schools"));
+    const studentsSnap = await getDocs(collection(db,"students"));
+    const notesSnap = await getDocs(collection(db,"notes"));
+    const papersSnap = await getDocs(collection(db,"pastPapers"));
+    const competitionsSnap = await getDocs(collection(db,"competitions"));
+
+    document.getElementById("totalSchools").textContent = schoolsSnap.size;
+    document.getElementById("totalStudents").textContent = studentsSnap.size;
+    document.getElementById("totalNotes").textContent = notesSnap.docs.filter(d=>d.data().approved).length;
+    document.getElementById("totalPapers").textContent = papersSnap.docs.filter(d=>d.data().approved).length;
+    document.getElementById("liveCompetitions").textContent = competitionsSnap.docs.filter(d=>d.data().status==="live").length;
+
+    // Populate student school select
+    const studentSchoolSelect = document.getElementById("studentSchool");
+    studentSchoolSelect.innerHTML="";
+    schoolsSnap.forEach(docSnap=>{
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = docSnap.data().name;
+        studentSchoolSelect.appendChild(option);
+    });
+
+    // Populate Competition cards
+    const competitionsList = document.getElementById("competitionsList");
+    competitionsList.innerHTML="";
+    competitionsSnap.forEach(docSnap=>{
+        const c = docSnap.data();
+        const div = document.createElement("div");
+        div.className="card";
+        div.textContent = c.name + " ["+c.status+"]";
+        div.onclick=()=>loadArena(docSnap.id,c.name);
+        competitionsList.appendChild(div);
+    });
+
+    // Populate Notes & Past Papers
+    const notesList = document.getElementById("notesList");
+    notesList.innerHTML="<table><tr><th>Student</th><th>School</th><th>Title</th><th>Type</th><th>Approved</th><th>Actions</th></tr>";
+    const notesCombined = [...notesSnap.docs];
+    const papersSnapDocs = await getDocs(collection(db,"pastPapers"));
+    notesCombined.push(...papersSnapDocs.docs);
+    notesCombined.forEach(docSnap=>{
+        const d = docSnap.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML=`<td>${d.studentName}</td><td>${d.schoolName}</td><td>${d.title}</td><td>${d.type||'Note'}</td><td>${d.approved?'✅':'❌'}</td>`;
+        const approveBtn=document.createElement("button");
+        approveBtn.textContent="Approve"; approveBtn.className="approve-btn";
+        approveBtn.onclick=async()=>{await updateDoc(doc(db,docSnap.ref.parent.path,docSnap.id),{approved:true});loadOverview();};
+        const rejectBtn=document.createElement("button");
+        rejectBtn.textContent="Reject"; rejectBtn.className="reject-btn";
+        rejectBtn.onclick=async()=>{await updateDoc(doc(db,docSnap.ref.parent.path,docSnap.id),{approved:false});loadOverview();};
+        const deleteBtn=document.createElement("button");
+        deleteBtn.textContent="Delete"; deleteBtn.className="delete-btn";
+        deleteBtn.onclick=async()=>{await updateDoc(doc(db,docSnap.ref.parent.path,docSnap.id),{deleted:true});loadOverview();};
+        const tdActions=document.createElement("td");
+        tdActions.appendChild(approveBtn); tdActions.appendChild(rejectBtn); tdActions.appendChild(deleteBtn);
+        tr.appendChild(tdActions);
+        notesList.querySelector("table").appendChild(tr);
+    });
+}
+
+async function createCompetition(){const name=document.getElementById("competitionName").value;const desc=document.getElementById("competitionDesc").value;if(!name)return alert("Name required");await addDoc(collection(db,"competitions"),{name,description:desc,status:"upcoming",judgesAssigned:[],participants:[],results:{},createdAt:serverTimestamp()});alert("Competition Created!");document.getElementById("competitionName").value="";document.getElementById("competitionDesc").value="";loadOverview();}
+async function addJudge(){const name=document.getElementById("judgeName").value;if(!name)return alert("Name required");await addDoc(collection(db,"judges"),{name,assignedCompetitions:[],permissions:{approveAnswers:true,scoreOnly:false},createdAt:serverTimestamp()});alert("Judge Added!");document.getElementById("judgeName").value="";}
+async function addSchool(){const name=document.getElementById("schoolName").value;if(!name)return alert("Name required");await addDoc(collection(db,"schools"),{name,totalWins:0,totalMatches:0,totalNotes:0,totalPastPapers:0,createdAt:serverTimestamp(),logoUrl:"",description:""});alert("School Added!");document.getElementById("schoolName").value="";loadOverview();}
+async function addStudent(){const name=document.getElementById("studentName").value;const schoolId=document.getElementById("studentSchool").value;if(!name||!schoolId)return alert("Fill all fields");await addDoc(collection(db,"students"),{name,schoolId,status:"approved",uploadedNotesCount:0,uploadedPapersCount:0,createdAt:serverTimestamp(),email:""});alert("Student Added!");document.getElementById("studentName").value="";}
+async function addAnnouncement(){const title=document.getElementById("announcementTitle").value;const msg=document.getElementById("announcementMsg").value;if(!title||!msg)return alert("Fill all fields");await addDoc(collection(db,"announcements"),{title,message:msg,visible:true,createdAt:serverTimestamp(),expiresAt:null});alert("Announcement Added!");document.getElementById("announcementTitle").value="";document.getElementById("announcementMsg").value="";}
+async function updateSettings(){const whatsapp=document.getElementById("whatsappGroup").value;const contact=document.getElementById("supportContact").value;const settingsRef=doc(db,"settings","globalSettings");await updateDoc(settingsRef,{whatsappGroup:whatsapp,supportContact:contact});alert("Settings Updated!");}
+async function addMonetization(){const title=document.getElementById("adTitle").value;const link=document.getElementById("adLink").value;if(!title||!link)return alert("Fill all fields");await addDoc(collection(db,"monetization"),{title,link,createdAt:serverTimestamp()});alert("Ad Added!");document.getElementById("adTitle").value="";document.getElementById("adLink").value="";}
+
+// Competition Arena
+async function loadArena(compId,compName){
+    const arenaList=document.getElementById("arenaList");
+    arenaList.innerHTML="<h4>"+compName+"</h4>";
+    const submissionsSnap=await getDocs(collection(db,"competitionArena"));
+    const table=document.createElement("table");
+    const header=document.createElement("tr");
+    header.innerHTML="<th>Student</th><th>Question</th><th>Answer</th><th>Approved</th><th>Score</th><th>Actions</th>";
+    table.appendChild(header);
+
+    submissionsSnap.forEach(docSnap=>{
+        const data=docSnap.data();
+        if(data.competitionId!==compId) return;
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${data.studentName} (${data.schoolName})</td><td>${data.question}</td><td>${data.answer}</td><td>${data.approved?'✅':'❌'}</td><td>${data.score||0}</td>`;
+        const approveBtn=document.createElement("button");
+        approveBtn.textContent="Approve"; approveBtn.className="approve-btn";
+        approveBtn.onclick=async()=>{await updateDoc(doc(db,"competitionArena",docSnap.id),{approved:true});loadArena(compId,compName);};
+        const rejectBtn=document.createElement("button");
+        rejectBtn.textContent="Reject"; rejectBtn.className="reject-btn";
+        rejectBtn.onclick=async()=>{await updateDoc(doc(db,"competitionArena",docSnap.id),{approved:false});loadArena(compId,compName);};
+        const scoreInput=document.createElement("input");
+        scoreInput.type="number"; scoreInput.placeholder="Score"; scoreInput.className="score-input";
+        const scoreBtn=document.createElement("button"); scoreBtn.textContent="Set"; scoreBtn.onclick=async()=>{
+            const score=Number(scoreInput.value); if(isNaN(score)) return alert("Enter number");
+            await updateDoc(doc(db,"competitionArena",docSnap.id),{score});
+            const compRef=doc(db,"competitions",compId);
+            await updateDoc(compRef,{['results.'+data.studentId]:score});
+            loadArena(compId,compName);
+        };
+        const tdActions=document.createElement("td");
+        tdActions.appendChild(approveBtn); tdActions.appendChild(rejectBtn); tdActions.appendChild(scoreInput); tdActions.appendChild(scoreBtn);
+        tr.appendChild(tdActions);
+        table.appendChild(tr);
+    });
+    arenaList.appendChild(table);
+}
+
+window.onload = loadOverview;
+</script>
+</body>
+</html>

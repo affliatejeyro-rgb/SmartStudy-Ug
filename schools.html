@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schools | SmartStudy UG</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+}
+nav{
+padding:15px 30px;
+background:rgba(0,0,0,0.6);
+display:flex;
+justify-content:space-between;
+}
+nav a{
+color:white;
+text-decoration:none;
+margin-left:15px;
+}
+.container{
+max-width:1200px;
+margin:40px auto;
+padding:20px;
+}
+.search{
+margin-bottom:20px;
+}
+input{
+width:100%;
+padding:10px;
+border-radius:10px;
+border:none;
+}
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:20px;
+}
+.card{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:20px;
+backdrop-filter:blur(15px);
+}
+.card img{
+width:60px;
+height:60px;
+object-fit:cover;
+border-radius:10px;
+}
+.stats{
+margin-top:10px;
+font-size:14px;
+}
+button{
+margin-top:10px;
+padding:8px 12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+background:linear-gradient(135deg,var(--accent),var(--purple));
+color:white;
+font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div><strong>SmartStudy UG</strong></div>
+<div>
+<a href="index.html">Home</a>
+<a href="school-register.html">Register School</a>
+<a href="competition.html">Arena</a>
+</div>
+</nav>
+
+<div class="container">
+<h1>🏫 Registered Schools</h1>
+<p>Official schools participating in SmartStudy UG competitions.</p>
+
+<div class="search">
+<input type="text" id="searchInput" placeholder="Search school by name...">
+</div>
+
+<div class="grid" id="schoolsContainer">
+Loading schools...
+</div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, collection, getDocs } 
+from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const container=document.getElementById("schoolsContainer");
+const searchInput=document.getElementById("searchInput");
+
+let schoolsData=[];
+
+async function loadSchools(){
+const querySnapshot=await getDocs(collection(db,"schools"));
+schoolsData=[];
+querySnapshot.forEach(doc=>{
+schoolsData.push({id:doc.id,...doc.data()});
+});
+displaySchools(schoolsData);
+}
+
+function displaySchools(data){
+if(data.length===0){
+container.innerHTML="No schools registered yet.";
+return;
+}
+
+container.innerHTML="";
+data.forEach(school=>{
+container.innerHTML+=`
+<div class="card">
+<img src="${school.logo || 'https://via.placeholder.com/60'}">
+<h3>${school.name}</h3>
+<p>${school.district}</p>
+
+<div class="stats">
+🏆 Wins: ${school.totalWins || 0}<br>
+🎮 Matches: ${school.totalMatches || 0}<br>
+📘 Notes Uploaded: ${school.totalNotes || 0}<br>
+📄 Past Papers Uploaded: ${school.totalPastPapers || 0}
+</div>
+
+<button onclick="viewProfile('${school.id}')">
+View Profile
+</button>
+</div>
+`;
+});
+}
+
+window.viewProfile=function(id){
+window.location.href=`school-profile.html?id=${id}`;
+};
+
+searchInput.addEventListener("input",()=>{
+const filtered=schoolsData.filter(s=>
+s.name.toLowerCase().includes(searchInput.value.toLowerCase())
+);
+displaySchools(filtered);
+});
+
+loadSchools();
+</script>
+
+</body>
+</html>

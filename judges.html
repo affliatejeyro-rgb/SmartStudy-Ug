@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartStudy UG | Judges Control Room</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--green:#2EF2A6;
+--red:#ff4d4d;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+}
+section{max-width:1200px;margin:auto;padding:30px;}
+h1,h2{margin-bottom:15px;}
+.glass{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:20px;
+margin-bottom:25px;
+backdrop-filter:blur(15px);
+}
+button{
+padding:10px 16px;
+border:none;
+border-radius:12px;
+font-weight:700;
+cursor:pointer;
+margin:5px 5px 5px 0;
+}
+.primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:white;}
+.success{background:var(--green);color:black;}
+.danger{background:var(--red);color:white;}
+.warning{background:var(--gold);color:black;}
+input,textarea{
+width:100%;
+padding:8px;
+margin-top:8px;
+border-radius:8px;
+border:none;
+}
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:20px;
+}
+.answer-card{
+background:rgba(255,255,255,0.05);
+padding:10px;
+border-radius:12px;
+margin-bottom:10px;
+}
+.score-box{
+font-size:22px;
+font-weight:900;
+color:var(--gold);
+}
+</style>
+</head>
+<body>
+
+<section>
+<h1>🎛 SmartStudy UG Judges Master Control Room</h1>
+
+<div class="glass">
+<h2>🎮 Match Controls</h2>
+<button class="primary" onclick="sendSignal('start')">Start Match</button>
+<button class="warning" onclick="sendSignal('bell')">Ring Bell</button>
+<button class="danger" onclick="sendSignal('end')">End Match</button>
+<button class="danger" onclick="resetMatch()">Reset Match</button>
+</div>
+
+<div class="glass">
+<h2>🏆 Manual Winner Override</h2>
+<input id="manualWinner" placeholder="Enter School Name">
+<button class="success" onclick="declareManualWinner()">Declare Winner</button>
+</div>
+
+<div class="glass">
+<h2>💬 Judges Discussion</h2>
+<textarea id="discussionInput" placeholder="Type discussion note..."></textarea>
+<button class="primary" onclick="sendDiscussion()">Send Discussion</button>
+<button class="danger" onclick="clearDiscussion()">Clear Discussion</button>
+</div>
+
+<div class="glass">
+<h2>📊 Live Score Monitor</h2>
+<div class="score-box">
+School A Score: <span id="scoreA">0</span><br>
+School B Score: <span id="scoreB">0</span>
+</div>
+</div>
+
+<div class="glass">
+<h2>📝 Pending Answers</h2>
+<div id="pendingAnswers"></div>
+</div>
+
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDocs } from 
+"https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+/* SEND SIGNAL */
+window.sendSignal=async(type)=>{
+await addDoc(collection(db,"competitionSignals"),{
+type:type,
+createdAt:Date.now()
+});
+};
+
+/* MANUAL WINNER */
+window.declareManualWinner=async()=>{
+if(!manualWinner.value)return alert("Enter school name");
+await addDoc(collection(db,"competitionSignals"),{
+type:"manualWinner",
+winner:manualWinner.value,
+createdAt:Date.now()
+});
+manualWinner.value="";
+};
+
+/* DISCUSSION */
+window.sendDiscussion=async()=>{
+if(!discussionInput.value)return;
+await addDoc(collection(db,"judgeDiscussion"),{
+note:discussionInput.value,
+createdAt:Date.now()
+});
+discussionInput.value="";
+};
+
+window.clearDiscussion=async()=>{
+const snap=await getDocs(collection(db,"judgeDiscussion"));
+snap.forEach(async d=>{await deleteDoc(doc(db,"judgeDiscussion",d.id));});
+};
+
+/* RESET MATCH */
+window.resetMatch=async()=>{
+const answers=await getDocs(collection(db,"competitionAnswers"));
+answers.forEach(async d=>{await deleteDoc(doc(db,"competitionAnswers",d.id));});
+alert("Match reset complete");
+};
+
+/* LISTEN ANSWERS */
+onSnapshot(collection(db,"competitionAnswers"),snap=>{
+pendingAnswers.innerHTML="";
+let a=0,b=0;
+
+snap.forEach(docu=>{
+let d=docu.data();
+if(d.approved){
+if(d.side==="A")a++;
+if(d.side==="B")b++;
+}else{
+pendingAnswers.innerHTML+=`
+<div class="answer-card">
+<strong>${d.school}</strong> (${d.side})<br>
+${d.answer}<br>
+<button class="success" onclick="approveAnswer('${docu.id}')">Approve</button>
+<button class="danger" onclick="rejectAnswer('${docu.id}')">Reject</button>
+</div>`;
+}
+});
+
+scoreA.textContent=a;
+scoreB.textContent=b;
+});
+
+/* APPROVE */
+window.approveAnswer=async(id)=>{
+await updateDoc(doc(db,"competitionAnswers",id),{
+approved:true
+});
+};
+
+/* REJECT */
+window.rejectAnswer=async(id)=>{
+await deleteDoc(doc(db,"competitionAnswers",id));
+};
+</script>
+
+</body>
+</html>

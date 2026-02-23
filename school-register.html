@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register School | SmartStudy UG</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+}
+nav{
+padding:15px 30px;
+background:rgba(0,0,0,0.6);
+display:flex;
+justify-content:space-between;
+}
+nav a{
+color:white;
+text-decoration:none;
+margin-left:15px;
+}
+section{
+max-width:800px;
+margin:40px auto;
+padding:20px;
+}
+.glass{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:25px;
+backdrop-filter:blur(15px);
+}
+input,select{
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+}
+button{
+margin-top:15px;
+padding:12px;
+border:none;
+border-radius:12px;
+font-weight:700;
+cursor:pointer;
+background:linear-gradient(135deg,var(--accent),var(--purple));
+color:white;
+}
+.help{
+margin-top:20px;
+padding:15px;
+background:rgba(255,255,255,0.05);
+border-radius:15px;
+}
+.success{
+color:var(--gold);
+margin-top:15px;
+font-weight:700;
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div><strong>SmartStudy UG</strong></div>
+<div>
+<a href="index.html">Home</a>
+<a href="schools.html">Schools</a>
+<a href="competition.html">Arena</a>
+</div>
+</nav>
+
+<section>
+<div class="glass">
+
+<h1>🏫 School Registration</h1>
+<p>Register your school to participate in SmartStudy UG National Competitions.</p>
+
+<input id="name" placeholder="School Name" required>
+<input id="district" placeholder="District" required>
+<input id="contactPerson" placeholder="Contact Person" required>
+<input id="phone" placeholder="Phone Number" required>
+<input id="email" placeholder="Email Address">
+<input id="motto" placeholder="School Motto">
+<input id="logo" placeholder="Logo URL (optional)">
+<select id="level">
+<option value="O-Level">O-Level</option>
+<option value="A-Level">A-Level</option>
+<option value="Both">Both</option>
+</select>
+
+<button onclick="registerSchool()">Register School</button>
+
+<div class="success" id="successMsg"></div>
+
+<div class="help">
+<h3>Need Help?</h3>
+<p>If you experience any issue during registration, contact support directly:</p>
+<a href="https://wa.me/256704557858" target="_blank">
+<button>Contact on WhatsApp</button>
+</a>
+</div>
+
+</div>
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+window.registerSchool=async()=>{
+if(!name.value || !district.value || !contactPerson.value || !phone.value){
+alert("Please fill all required fields");
+return;
+}
+
+await addDoc(collection(db,"schools"),{
+name:name.value,
+district:district.value,
+contactPerson:contactPerson.value,
+phone:phone.value,
+email:email.value,
+motto:motto.value,
+logo:logo.value,
+level:level.value,
+totalWins:0,
+totalMatches:0,
+createdAt:serverTimestamp()
+});
+
+successMsg.textContent="School Registered Successfully! Redirecting...";
+setTimeout(()=>{
+window.location.href="schools.html";
+},2000);
+};
+</script>
+
+</body>
+</html>

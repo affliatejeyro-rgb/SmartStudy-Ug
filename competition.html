@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartStudy UG | Live Arena</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg1:#05070d;
+--bg2:#0b1220;
+--accent:#6EA8FF;
+--purple:#B78BFF;
+--gold:#FFD700;
+--green:#2EF2A6;
+--red:#ff4d4d;
+--glass:rgba(255,255,255,0.06);
+--stroke:rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{
+background:linear-gradient(180deg,var(--bg1),var(--bg2));
+color:white;
+overflow-x:hidden;
+}
+h1,h2,h3{margin-bottom:10px;}
+section{max-width:1300px;margin:auto;padding:20px;}
+.glass{
+background:var(--glass);
+border:1px solid var(--stroke);
+border-radius:20px;
+padding:20px;
+backdrop-filter:blur(15px);
+margin-bottom:20px;
+}
+.grid{
+display:grid;
+grid-template-columns:1fr 1.2fr 1fr;
+gap:20px;
+}
+@media(max-width:1000px){
+.grid{grid-template-columns:1fr;}
+}
+button{
+padding:10px 16px;
+border:none;
+border-radius:12px;
+cursor:pointer;
+font-weight:700;
+background:linear-gradient(135deg,var(--accent),var(--purple));
+color:white;
+margin-top:8px;
+}
+input{
+width:100%;
+padding:8px;
+margin-top:8px;
+border-radius:8px;
+border:none;
+}
+.status{
+font-weight:900;
+padding:6px 12px;
+border-radius:20px;
+display:inline-block;
+}
+.waiting{background:gray;}
+.live{background:var(--green);color:black;}
+.ended{background:var(--red);}
+.score-big{
+font-size:40px;
+font-weight:900;
+color:var(--gold);
+}
+.leading{
+color:var(--green);
+font-weight:900;
+}
+.feed{
+max-height:200px;
+overflow:auto;
+font-size:14px;
+margin-top:10px;
+}
+.feed div{
+background:rgba(255,255,255,0.05);
+padding:6px;
+border-radius:8px;
+margin-bottom:6px;
+}
+#winnerOverlay{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.95);
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+font-size:36px;
+font-weight:900;
+color:var(--gold);
+z-index:999;
+}
+</style>
+</head>
+<body>
+
+<section>
+
+<h1>🎥 SmartStudy UG Live Competition Arena</h1>
+<div id="statusBadge" class="status waiting">WAITING</div>
+
+<div class="grid">
+
+<!-- SCHOOL A -->
+<div class="glass">
+<h2>🏫 School A</h2>
+<input id="schoolA" placeholder="School Name">
+<input id="answerA" placeholder="Answer">
+<button onclick="submitAnswer('A')">Submit</button>
+<div class="feed" id="answersA"></div>
+</div>
+
+<!-- CENTER SCOREBOARD -->
+<div class="glass">
+<h2>🏆 Official Match Scoreboard</h2>
+
+<div style="display:flex;justify-content:space-between;">
+<div>
+<h3 id="nameA">School A</h3>
+<div class="score-big" id="scoreA">0</div>
+</div>
+
+<div style="text-align:center;">
+<h3>VS</h3>
+<div id="totalApproved">0 Approved</div>
+<div id="leadingIndicator" class="leading"></div>
+</div>
+
+<div>
+<h3 id="nameB">School B</h3>
+<div class="score-big" id="scoreB">0</div>
+</div>
+</div>
+
+<hr style="margin:15px 0;opacity:0.3;">
+
+<h3>Last Approved Answer</h3>
+<div id="lastApproved">None</div>
+
+<h3 style="margin-top:15px;">Judges Activity</h3>
+<div class="feed" id="discussionFeed"></div>
+
+</div>
+
+<!-- SCHOOL B -->
+<div class="glass">
+<h2>🏫 School B</h2>
+<input id="schoolB" placeholder="School Name">
+<input id="answerB" placeholder="Answer">
+<button onclick="submitAnswer('B')">Submit</button>
+<div class="feed" id="answersB"></div>
+</div>
+
+</div>
+
+<!-- AUDIENCE -->
+<div class="glass">
+<h2>👥 Audience Reactions</h2>
+<input id="audienceMsg" placeholder="Send comment...">
+<button onclick="sendAudience()">Send</button>
+<div>
+<button onclick="react('👏')">👏</button>
+<button onclick="react('🔥')">🔥</button>
+<button onclick="react('🎉')">🎉</button>
+<button onclick="react('😮')">😮</button>
+</div>
+<div class="feed" id="audienceFeed"></div>
+</div>
+
+</section>
+
+<div id="winnerOverlay">
+<div id="winnerText"></div>
+<button onclick="closeWinner()">Close</button>
+</div>
+
+<audio id="bellSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAGWpG5viSmVy758yD5oIHPgvJYtBcDMwU",
+authDomain:"smartstudy-e6607.firebaseapp.com",
+projectId:"smartstudy-e6607"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+/* MATCH STATE */
+const matchRef=doc(db,"system","matchState");
+
+onSnapshot(matchRef,docSnap=>{
+if(!docSnap.exists()) return;
+let data=docSnap.data();
+updateStatus(data.status);
+if(data.status==="ended"){
+declareWinner(data.winner);
+disableInputs(true);
+}
+if(data.status==="live"){
+disableInputs(false);
+}
+});
+
+/* STATUS */
+function updateStatus(status){
+statusBadge.className="status "+status;
+statusBadge.textContent=status.toUpperCase();
+}
+
+/* DISABLE */
+function disableInputs(state){
+answerA.disabled=state;
+answerB.disabled=state;
+}
+
+/* SUBMIT */
+window.submitAnswer=async(side)=>{
+if(answerA.disabled) return;
+let school=side==="A"?schoolA.value:schoolB.value;
+let ans=side==="A"?answerA.value:answerB.value;
+if(!school||!ans)return;
+
+await addDoc(collection(db,"competitionAnswers"),{
+school,answer:ans,side,approved:false,
+createdAt:serverTimestamp()
+});
+if(side==="A")answerA.value="";
+else answerB.value="";
+};
+
+/* ANSWERS */
+onSnapshot(collection(db,"competitionAnswers"),snap=>{
+let a=0,b=0,total=0;
+answersA.innerHTML="";
+answersB.innerHTML="";
+snap.forEach(d=>{
+let data=d.data();
+if(data.approved){
+total++;
+lastApproved.textContent=data.answer;
+if(data.side==="A"){a++;answersA.innerHTML+=`<div>${data.answer}</div>`;}
+if(data.side==="B"){b++;answersB.innerHTML+=`<div>${data.answer}</div>`;}
+}
+});
+scoreA.textContent=a;
+scoreB.textContent=b;
+totalApproved.textContent=total+" Approved";
+updateLeader(a,b);
+});
+
+/* LEADER */
+function updateLeader(a,b){
+if(a>b) leadingIndicator.textContent="School A Leading";
+else if(b>a) leadingIndicator.textContent="School B Leading";
+else leadingIndicator.textContent="Tie";
+}
+
+/* DISCUSSION */
+onSnapshot(collection(db,"judgeDiscussion"),snap=>{
+discussionFeed.innerHTML="";
+snap.forEach(d=>{
+discussionFeed.innerHTML+=`<div>${d.data().note}</div>`;
+});
+});
+
+/* SIGNALS */
+onSnapshot(collection(db,"competitionSignals"),snap=>{
+snap.docChanges().forEach(change=>{
+let data=change.doc.data();
+if(data.type==="bell") bellSound.play();
+if(data.type==="manualWinner"){
+declareWinner(data.winner);
+}
+});
+});
+
+/* WINNER */
+function declareWinner(winner){
+if(!winner){
+let a=parseInt(scoreA.textContent);
+let b=parseInt(scoreB.textContent);
+winner=a>b?schoolA.value:(b>a?schoolB.value:"DRAW");
+}
+winnerText.textContent="🏆 "+winner+" WINS!";
+winnerOverlay.style.display="flex";
+}
+
+window.closeWinner=()=>winnerOverlay.style.display="none";
+
+/* AUDIENCE */
+window.sendAudience=async()=>{
+if(!audienceMsg.value)return;
+await addDoc(collection(db,"audienceReactions"),{
+msg:audienceMsg.value,
+createdAt:serverTimestamp()
+});
+audienceMsg.value="";
+};
+window.react=async(emoji)=>{
+await addDoc(collection(db,"audienceReactions"),{
+msg:emoji,
+createdAt:serverTimestamp()
+});
+};
+
+onSnapshot(collection(db,"audienceReactions"),snap=>{
+audienceFeed.innerHTML="";
+snap.forEach(d=>{
+audienceFeed.innerHTML+=`<div>${d.data().msg}</div>`;
+});
+});
+</script>
+
+</body>
+</html>
